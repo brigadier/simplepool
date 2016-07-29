@@ -20,7 +20,7 @@
 %%====================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -28,7 +28,12 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+	Pools = {simplepool_pools_sup, {simplepool_pools_sup, start_link, []},
+                permanent, 5000, supervisor, [simplepool_pools_sup]},
+
+	Disp = {simplepool_disp, {simplepool_disp, start_link, []},
+                permanent, 5000, worker, [simplepool_disp]},
+	{ok, {{one_for_all, 0, 1}, [Pools, Disp]}}.
 
 %%====================================================================
 %% Internal functions

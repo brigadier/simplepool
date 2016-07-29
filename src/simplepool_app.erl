@@ -15,11 +15,12 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    simplepool_sup:start_link().
+	simplepool_builder:build([]),
+	simplepool_sup:start_link().
 
 %%--------------------------------------------------------------------
 stop(_State) ->
-    ok.
+	ok.
 
 %%====================================================================
 %% Internal functions

@@ -1,0 +1,2 @@
+-record(pool, {name, sup_name, workers}).
+-define(POOLS_MODULE, simplepool_pools).

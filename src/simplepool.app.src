@@ -1,16 +1,17 @@
 {application, simplepool,
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {mod, { simplepool_app, []}},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
-  {modules, []},
+	[{description, "Simple pool of gen_server workers"},
+		{vsn, "0.9.0"},
+		{registered, []},
+		{mod, {simplepool_app, []}},
+		{applications,
+			[kernel,
+				stdlib,
+				syntax_tools
+			]},
+		{env, []},
+		{modules, []},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
- ]}.
+		{maintainers, []},
+		{licenses, []},
+		{links, []}
+	]}.
