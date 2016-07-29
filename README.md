@@ -11,7 +11,7 @@ As the atoms are created dynamically it wouldn't be a smart idea to create pools
 too often. Luckily, pools are usually static
 * So all the gen_servers must be started with `gen_server:start_link/4`, with either {local, Name} or {global, Name}.
 See an example module in tests
-* No any built-in load-balansing features. You get all the workers in a pool and if you want you may balance
+* No any built-in load-balancing features. You get all the workers in a pool and if you want you may balance
 them yourself. The only built-in balancing is random. So if you are going to use synchronous `gen_server:call`
 ensure that the callbacks don't take much time.
 
