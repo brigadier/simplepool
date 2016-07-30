@@ -3,7 +3,7 @@
 %% API
 -export([start/0]).
 
--export([start_pool/4, stop_pool/1, pool/1, rand_worker/1, start_pool/5]).
+-export([start_pool/5, stop_pool/1, pool/1, rand_worker/1, start_pool/6]).
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -15,13 +15,13 @@ start() ->
 
 
 
--spec start_pool(atom(), pos_integer(), atom(), term()) -> {error, term()} | ok.
-start_pool(Name, Size, Worker, Args) ->
-	start_pool(local, Name, Size, Worker, Args).
+-spec start_pool(atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}) -> {error, term()} | ok.
+start_pool(Name, Size, Worker, Args, SupFlags) ->
+	start_pool(local, Name, Size, Worker, Args, SupFlags).
 
--spec start_pool(global|local, atom(), pos_integer(), atom(), term()) -> {error, term()} | ok.
-start_pool(Visibility, Name, Size, Worker, Args) ->
-	simplepool_disp:start_pool(Visibility, Name, Size, Worker, Args).
+-spec start_pool(global|local, atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}) -> {error, term()} | ok.
+start_pool(Visibility, Name, Size, Worker, Args, SupFlags) ->
+	simplepool_disp:start_pool(Visibility, Name, Size, Worker, Args, SupFlags).
 
 -spec stop_pool(atom()) -> {error, term()} | ok.
 stop_pool(Name) ->

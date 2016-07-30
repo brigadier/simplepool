@@ -24,7 +24,7 @@ simplepooltest(_Config) ->
 	{3, Workers2} = simplepool:pool(pool2),
 
 	%start pool
-	ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3]),
+	ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3], {one_for_one, 1, 5}),
 	{5, Workers3} = simplepool:pool(pool3),
 	5 = tuple_size(Workers3),
 	RandWorker1 = simplepool:rand_worker(pool3),
@@ -32,7 +32,7 @@ simplepooltest(_Config) ->
 
 
 	%global pool
-	ok = simplepool:start_pool(global, pool4, 4, test_worker, [{mul, 3}]),
+	ok = simplepool:start_pool(global, pool4, 4, test_worker, [{mul, 3}], #{strategy => one_for_all, intensity => 1, period => 5}),
 	{4, Workers4} = simplepool:pool(pool4),
 	4 = tuple_size(Workers4),
 	RandWorker4 = simplepool:rand_worker(pool4),

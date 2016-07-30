@@ -37,7 +37,7 @@ Examples
 -----
 ```erlang
 %%simplepool:start_pool([Pool name], [Pool size], [Worker module], [Arg for the Init of the module]).
-ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3]).
+ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3], #{strategy => one_for_one, intensity => 1, period => 5}).
 {5, Workers3} = simplepool:pool(pool3).
 5 = tuple_size(Workers3).
 RandWorker1 = simplepool:rand_worker(pool3).
@@ -45,7 +45,7 @@ RandWorker1 = simplepool:rand_worker(pool3).
 simplepool:stop_pool(pool3),
 not_found = simplepool:pool(pool3),
 %%global workers are also possible
-ok = simplepool:start_pool(global, pool4, 5, test_worker, [1,2,3]).
+ok = simplepool:start_pool(global, pool4, 5, test_worker, [1,2,3], #{strategy => one_for_one, intensity => 1, period => 5}).
 RandWorker2 = simplepool:rand_worker(pool4).
 0 = gen_server:call(RandWorker2, {mul, 2}).
 ```

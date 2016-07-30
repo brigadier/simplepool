@@ -5,7 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% API
--export([start_link/5]).
+-export([start_link/6]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -14,21 +14,21 @@
 %%% API functions
 %%%===================================================================
 
-start_link(Visibility, SupName, Workers, WorkerModule, WorkerArgs) ->
+start_link(Visibility, SupName, Workers, WorkerModule, WorkerArgs, SupFlags) ->
 	supervisor:start_link(
 		{local, SupName},
-		?MODULE, {Visibility, Workers, WorkerModule, WorkerArgs}
+		?MODULE, {Visibility, Workers, WorkerModule, WorkerArgs, SupFlags}
 	).
 
 %%%===================================================================
 %%% Supervisor callbacks
 %%%===================================================================
 
-init({Visibility, WorkersList, WorkerModule, WorkerArgs}) ->
+init({Visibility, WorkersList, WorkerModule, WorkerArgs, SupFlags}) ->
 	Workers = get_workers(Visibility, WorkersList, WorkerModule, WorkerArgs),
-	{ok, {{one_for_one, 0, 1}, Workers}}.
+	{ok, {SupFlags, Workers}}.
 
-
+%%{one_for_one, 1, 5}
 
 %%%===================================================================
 %%% Internal functions

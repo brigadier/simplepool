@@ -5,7 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("simplepool.hrl").
 %% API
--export([start_link/0, start_pool/5, stop_pool/1]).
+-export([start_link/0, start_pool/6, stop_pool/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -27,8 +27,8 @@
 start_link() ->
 	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-start_pool(Visibility, Name, Size, Worker, Args) when is_atom(Name), is_integer(Size), is_atom(Worker) ->
-	gen_server:call(?SERVER, {start, Visibility, Name, Size, Worker, Args}).
+start_pool(Visibility, Name, Size, Worker, Args, SupFlags) when is_atom(Name), is_integer(Size), is_atom(Worker) ->
+	gen_server:call(?SERVER, {start, Visibility, Name, Size, Worker, Args, SupFlags}).
 
 stop_pool(Name) ->
 	gen_server:call(?SERVER, {stop, Name}).
@@ -45,7 +45,8 @@ init([]) ->
 			Size = proplists:get_value(size, PoolOptions, 10),
 			Worker = proplists:get_value(worker, PoolOptions),
 			Visibility = proplists:get_value(visible, PoolOptions, local),
-			{ok, Pool} = do_start_pool(Visibility, PoolName, Size, Worker, [Args]),
+			SupFlags = proplists:get_value(sup_flags, PoolOptions, {one_for_one, 1, 5}),
+			{ok, Pool} = do_start_pool(Visibility, PoolName, Size, Worker, [Args], SupFlags),
 			Pool
 		end,
 		PoolsEnv
@@ -54,10 +55,10 @@ init([]) ->
 	{ok, #state{pools = Pools}}.
 
 
-handle_call({start, Visibility, Name, Size, Worker, Args}, _From, #state{pools = Pools} = State) ->
+handle_call({start, Visibility, Name, Size, Worker, Args, SupFlags}, _From, #state{pools = Pools} = State) ->
 	case lists:keyfind(Name, 2, Pools) of
 		false ->
-			case do_start_pool(Visibility, Name, Size, Worker, [Args]) of
+			case do_start_pool(Visibility, Name, Size, Worker, [Args], SupFlags) of
 				{ok, Pool} ->
 					Pools2 = [Pool | Pools],
 					{module, _} = simplepool_builder:build(Pools2),
@@ -114,14 +115,14 @@ do_stop_pool(#pool{sup_name = SupName}) ->
 	supervisor:delete_child(simplepool_pools_sup, SupName),
 	Result.
 
-do_start_pool(Visibility, Name, Size, Worker, Args) ->
+do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags) ->
 	WorkerNames = worker_names(Name, Size),
 	SupName = sup_name(Name),
 	case supervisor:start_child(
 		simplepool_pools_sup,
 
 		#{id => SupName,
-			start => {simplepool_pool_sup, start_link, [Visibility, SupName, WorkerNames, Worker, Args]},
+			start => {simplepool_pool_sup, start_link, [Visibility, SupName, WorkerNames, Worker, Args, SupFlags]},
 			restart => transient,
 			shutdown => 3000,
 			type => supervisor,
