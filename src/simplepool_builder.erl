@@ -19,8 +19,8 @@ build(Pools) ->
 	),
 	ExportForm = erl_syntax:revert(Export),
 	Clauses = lists:foldl(
-		fun(#pool{name = Name, workers = Workers}, Acc) ->
-			WorkersTuple = list_to_tuple(Workers),
+		fun(#pool{name = Name, workers = Workers, visibility = Visibility}, Acc) ->
+			WorkersTuple = list_to_tuple(adjust_global(Workers, Visibility)),
 			WorkersLen = length(Workers),
 			WorkersTree = erl_syntax:abstract({WorkersLen, WorkersTuple}),
 			Selector = erl_syntax:atom(Name),
@@ -42,3 +42,6 @@ build(Pools) ->
 
 	{ok, Mod, Bin1} = compile:forms([ModForm, ExportForm, FunctionForm]),
 	code:load_binary(Mod, [], Bin1).
+
+adjust_global(Workers, local) -> Workers;
+adjust_global(Workers, global) -> [{global, W} || W <- Workers].

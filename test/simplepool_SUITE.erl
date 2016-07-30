@@ -30,6 +30,15 @@ simplepooltest(_Config) ->
 	RandWorker1 = simplepool:rand_worker(pool3),
 	0 = gen_server:call(RandWorker1, {mul, 2}),
 
+
+	%global pool
+	ok = simplepool:start_pool(global, pool4, 4, test_worker, [{mul, 3}]),
+	{4, Workers4} = simplepool:pool(pool4),
+	4 = tuple_size(Workers4),
+	RandWorker4 = simplepool:rand_worker(pool4),
+	6 = gen_server:call(RandWorker4, {mul, 2}),
+
+
 	%stop just started pool
 	simplepool:stop_pool(pool3),
 	not_found = simplepool:pool(pool3),

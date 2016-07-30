@@ -1,9 +1,9 @@
 -module(test_worker).
 
 -behaviour(gen_server).
-
+-behaviour(gen_simplepool_worker).
 %% API
--export([start_link/2]).
+-export([simplepool_start_link/3]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -21,9 +21,10 @@
 %%% API
 %%%===================================================================
 
-start_link(Name, Args) ->
-	gen_server:start_link({local, Name}, ?MODULE, Args, []).
-
+%%start_link(Name, Args) ->
+%%	gen_server:start_link({local, Name}, ?MODULE, Args, []).
+simplepool_start_link(Visibility, Name, Args) ->
+	gen_server:start_link({Visibility, Name}, ?MODULE, Args, []).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================

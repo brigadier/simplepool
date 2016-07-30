@@ -3,15 +3,13 @@
 %% API
 -export([start/0]).
 
--export([start_pool/4, stop_pool/1, pool/1, rand_worker/1]).
+-export([start_pool/4, stop_pool/1, pool/1, rand_worker/1, start_pool/5]).
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 start() ->
-	application:load(simplepool),
-	true = ensure_deps_started(simplepool),
-	application:start(simplepool, permanent).
+	true = ensure_started(simplepool).
 
 
 
@@ -19,7 +17,11 @@ start() ->
 
 -spec start_pool(atom(), pos_integer(), atom(), term()) -> {error, term()} | ok.
 start_pool(Name, Size, Worker, Args) ->
-	simplepool_disp:start_pool(Name, Size, Worker, Args).
+	start_pool(local, Name, Size, Worker, Args).
+
+-spec start_pool(global|local, atom(), pos_integer(), atom(), term()) -> {error, term()} | ok.
+start_pool(Visibility, Name, Size, Worker, Args) ->
+	simplepool_disp:start_pool(Visibility, Name, Size, Worker, Args).
 
 -spec stop_pool(atom()) -> {error, term()} | ok.
 stop_pool(Name) ->
@@ -32,7 +34,7 @@ pool(Name) ->
 
 
 %%you can make your own, better algo of selecting workers, instead of this
--spec rand_worker(atom()) -> not_found | atom().
+-spec rand_worker(atom()) -> not_found | atom() | {global, atom()}.
 rand_worker(Name) ->
 	case pool(Name) of
 		not_found -> not_found;
@@ -48,22 +50,21 @@ rand_worker(Name) ->
 %%%===================================================================
 
 ensure_deps_started(App) ->
-	application:load(App),
 	Deps = case application:get_key(App, applications) of
 			   undefined -> [];
 			   {_, V} -> V
 		   end,
-	true = lists:all(fun ensure_started/1, Deps).
+	lists:all(fun ensure_started/1,Deps).
 
 ensure_started(App) ->
-	ensure_deps_started(App),
-
-	case application:start(App) of
-		ok ->
-			true;
-		{error, {already_started, App}} ->
-			true;
-		Else ->
-			error_logger:error_msg("Couldn't start ~p: ~p", [App, Else]),
-			Else
-	end.
+	application:load(App),
+	ensure_deps_started(App)
+		andalso case application:start(App) of
+					ok ->
+						true;
+					{error, {already_started, App}} ->
+						true;
+					Else ->
+						error_logger:error_msg("Couldn't start ~p: ~p", [App, Else]),
+						false
+				end.

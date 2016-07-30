@@ -44,6 +44,10 @@ RandWorker1 = simplepool:rand_worker(pool3).
 0 = gen_server:call(RandWorker1, {mul, 2}).
 simplepool:stop_pool(pool3),
 not_found = simplepool:pool(pool3),
+%%global workers are also possible
+ok = simplepool:start_pool(global, pool4, 5, test_worker, [1,2,3]).
+RandWorker2 = simplepool:rand_worker(pool4).
+0 = gen_server:call(RandWorker2, {mul, 2}).
 ```
 
 It is also possible to specify pools in `env` of the `app.src` file.
