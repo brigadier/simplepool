@@ -84,7 +84,7 @@ init_per_suite(Config) ->
 	application:load(simplepool),
 	application:set_env(simplepool, pools,
 		[
-			{pool1, [{size, 2}, {worker, test_worker}], [a,b,c]},
+			{pool1, [{size, 2}, {worker, test_worker}, {sup_flags, #{strategy => one_for_one, intensity => 1, period => 5}}], [a,b,c]},
 			{pool2, [{size, 3}, {worker, test_worker}], [{mul, 10}]}
 		]
 	),
