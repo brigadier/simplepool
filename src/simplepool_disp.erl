@@ -123,8 +123,8 @@ do_stop_pool(#pool{sup_name = SupName, mon_ref = MonRef}) ->
 	Result.
 
 do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller) ->
-	WorkerNames = worker_names(Name, Size),
-	SupName = sup_name(Name),
+	WorkerNames = worker_names(Name, Size, Worker),
+	SupName = sup_name(Name, Worker),
 	ControllerName = controller_name(Name, Controller),
 	case supervisor:start_child(
 		simplepool_pools_sup,
@@ -155,16 +155,17 @@ do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller) ->
 
 
 
-worker_names(Name, Size) ->
+worker_names(Name, Size, WorkerMod) ->
 	lists:map(
 		fun(I) ->
-			list_to_atom(lists:flatten(io_lib:format("$simplepoolworker$~s-~B", [Name, I])))
+			list_to_atom(lists:flatten(io_lib:format("$simplepoolworker$~s$~s-~B", [Name, WorkerMod, I])))
 		end,
 		lists:seq(0, Size - 1)
 	).
 
 
-sup_name(Name) -> list_to_atom(lists:flatten(io_lib:format("$simplepoolsup$~s", [Name]))).
+sup_name(Name, WorkerMod) -> list_to_atom(lists:flatten(io_lib:format("$simplepoolsup$~s$~s", [Name, WorkerMod]))).
 
 controller_name(_Name, undefined) -> undefined;
-controller_name(Name, _) -> list_to_atom(lists:flatten(io_lib:format("$simplepoolcontroller$~s", [Name]))).
+controller_name(Name, WorkerMod) ->
+	list_to_atom(lists:flatten(io_lib:format("$simplepoolcontroller$~s$~s", [Name, WorkerMod]))).

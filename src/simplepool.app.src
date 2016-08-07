@@ -1,6 +1,6 @@
 {application, simplepool,
 	[{description, "Simple pool of gen_server workers"},
-		{vsn, "1.0.0"},
+		{vsn, "1.0.1"},
 		{registered, []},
 		{mod, {simplepool_app, []}},
 		{applications,
