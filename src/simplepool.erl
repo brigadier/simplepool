@@ -3,7 +3,7 @@
 %% API
 -export([start/0]).
 
--export([start_pool/5, stop_pool/1, pool/1, rand_worker/1, start_pool/6]).
+-export([start_pool/7, stop_pool/1, pool/1, rand_worker/1, start_pool/6, controller/1]).
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -15,20 +15,20 @@ start() ->
 
 
 
--spec start_pool(atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}) -> {error, term()} | ok.
-start_pool(Name, Size, Worker, Args, SupFlags) ->
-	start_pool(local, Name, Size, Worker, Args, SupFlags).
+-spec start_pool(atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}, atom()) -> {error, term()} | ok.
+start_pool(Name, Size, Worker, Args, SupFlags, Controller) ->
+	start_pool(local, Name, Size, Worker, Args, SupFlags, Controller).
 
--spec start_pool(global|local, atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}) -> {error, term()} | ok.
-start_pool(Visibility, Name, Size, Worker, Args, SupFlags) ->
-	simplepool_disp:start_pool(Visibility, Name, Size, Worker, Args, SupFlags).
+-spec start_pool(global|local, atom(), pos_integer(), atom(), term(), map()|{atom(), integer(), integer()}, atom()) -> {error, term()} | ok.
+start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller) ->
+	simplepool_disp:start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller).
 
 -spec stop_pool(atom()) -> {error, term()} | ok.
 stop_pool(Name) ->
 	simplepool_disp:stop_pool(Name).
 
 
--spec pool(atom()) -> not_found | {N :: pos_integer(), Workers :: tuple()}.
+-spec pool(atom()) -> not_found | {N :: pos_integer(), Workers :: tuple(), Controller :: atom()}.
 pool(Name) ->
 	?POOLS_MODULE:pool(Name).
 
@@ -38,12 +38,21 @@ pool(Name) ->
 rand_worker(Name) ->
 	case pool(Name) of
 		not_found -> not_found;
-		{N, Workers} ->
+		{N, Workers, _} ->
 			%%Looks like unique_integer is always a multiple of number of CPUs. So for 4 CPUs and 4 workers it will always return 2
 %%			I = (erlang:unique_integer([positive]) rem N) + 1,
 			I = erlang:phash2(erlang:unique_integer([positive]), N) + 1,
 			element(I, Workers)
 	end.
+
+
+-spec controller(atom()) -> not_found | undefined | atom() | {global, atom()}.
+controller(Name) ->
+	case pool(Name) of
+		not_found -> not_found;
+		{_, _, Controller} -> Controller
+	end.
+
 
 %%%===================================================================
 %%% Internal functions

@@ -1,2 +1,2 @@
--record(pool, {name, sup_name, workers, visibility}).
+-record(pool, {name, sup_name, workers, visibility, controller, sup_pid, mon_ref}).
 -define(POOLS_MODULE, simplepool_pools).

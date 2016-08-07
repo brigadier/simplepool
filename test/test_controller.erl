@@ -1,7 +1,8 @@
--module(test_worker).
+-module(test_controller).
 
 -behaviour(gen_server).
 -behaviour(gen_simplepool_worker).
+-include_lib("eunit/include/eunit.hrl").
 %% API
 -export([simplepool_start_link/4]).
 
@@ -15,33 +16,37 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {mul, controller}).
+-record(state, {add, workers}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-%%start_link(Name, Args) ->
-%%	gen_server:start_link({local, Name}, ?MODULE, Args, []).
-simplepool_start_link(Visibility, Name, Controller, Args) ->
-	gen_server:start_link({Visibility, Name}, ?MODULE, [Controller|Args], []).
+simplepool_start_link(Visibility, Name, Workers, Args) ->
+	gen_server:start_link({Visibility, Name}, ?MODULE, [Workers | Args], []).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
 
-init([Controller|Args]) ->
-	Mul = proplists:get_value(mul, Args, 0),
-	{ok, #state{mul = Mul, controller = Controller}}.
+init([Workers | Args]) ->
+	Add = proplists:get_value(add, Args, 0),
+	{ok, #state{add = Add, workers = Workers}}.
 
 
-handle_call(sleep, _From, State) ->
-	timer:sleep(1000),
+handle_call({mul, Mul1}, _From, #state{add = Add, workers = Workers} = State) ->
+	R = lists:foldl(
+		fun(Worker, Acc) ->
+			gen_server:call(Worker, {mul, Mul1}) + Acc
+		end,
+		Add,
+		Workers
+	),
+	{reply, R, State};
+
+handle_call(exc, _From, State) ->
+	exit(exc),
 	{reply, ok, State};
-
-handle_call({mul, Mul1}, _From, #state{mul = Mul} = State) ->
-	{reply, Mul1 * Mul, State};
-
 handle_call(_Request, _From, State) ->
 	{reply, ok, State}.
 

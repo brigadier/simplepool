@@ -5,7 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("simplepool.hrl").
 %% API
--export([start_link/0, start_pool/6, stop_pool/1]).
+-export([start_link/0, start_pool/7, stop_pool/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -27,8 +27,9 @@
 start_link() ->
 	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-start_pool(Visibility, Name, Size, Worker, Args, SupFlags) when is_atom(Name), is_integer(Size), is_atom(Worker) ->
-	gen_server:call(?SERVER, {start, Visibility, Name, Size, Worker, Args, SupFlags}).
+start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller)
+		when is_atom(Name), is_integer(Size), is_atom(Worker), is_atom(Controller) ->
+	gen_server:call(?SERVER, {start, Visibility, Name, Size, Worker, Args, SupFlags, Controller}).
 
 stop_pool(Name) ->
 	gen_server:call(?SERVER, {stop, Name}).
@@ -46,7 +47,8 @@ init([]) ->
 			Worker = proplists:get_value(worker, PoolOptions),
 			Visibility = proplists:get_value(visible, PoolOptions, local),
 			SupFlags = proplists:get_value(sup_flags, PoolOptions, {one_for_one, 1, 5}),
-			{ok, Pool} = do_start_pool(Visibility, PoolName, Size, Worker, [Args], SupFlags),
+			Controller = proplists:get_value(pool_controller, PoolOptions, undefined),
+			{ok, Pool} = do_start_pool(Visibility, PoolName, Size, Worker, [Args], SupFlags, Controller),
 			Pool
 		end,
 		PoolsEnv
@@ -55,10 +57,10 @@ init([]) ->
 	{ok, #state{pools = Pools}}.
 
 
-handle_call({start, Visibility, Name, Size, Worker, Args, SupFlags}, _From, #state{pools = Pools} = State) ->
+handle_call({start, Visibility, Name, Size, Worker, Args, SupFlags, Controller}, _From, #state{pools = Pools} = State) ->
 	case lists:keyfind(Name, 2, Pools) of
 		false ->
-			case do_start_pool(Visibility, Name, Size, Worker, [Args], SupFlags) of
+			case do_start_pool(Visibility, Name, Size, Worker, [Args], SupFlags, Controller) of
 				{ok, Pool} ->
 					Pools2 = [Pool | Pools],
 					{module, _} = simplepool_builder:build(Pools2),
@@ -93,6 +95,10 @@ handle_cast(_Request, State) ->
 	{noreply, State}.
 
 
+handle_info({'DOWN', _Ref, process, Pid, _Reason}, #state{pools = Pools} = State) ->
+	Pools2 = lists:keydelete(Pid, 7, Pools),
+	{module, _} = simplepool_builder:build(Pools2),
+	{noreply, State#state{pools = Pools2}};
 
 handle_info(_Info, State) ->
 	{noreply, State}.
@@ -110,19 +116,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-do_stop_pool(#pool{sup_name = SupName}) ->
+do_stop_pool(#pool{sup_name = SupName, mon_ref = MonRef}) ->
+	erlang:demonitor(MonRef),
 	Result = supervisor:terminate_child(simplepool_pools_sup, SupName),
 	supervisor:delete_child(simplepool_pools_sup, SupName),
 	Result.
 
-do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags) ->
+do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags, Controller) ->
 	WorkerNames = worker_names(Name, Size),
 	SupName = sup_name(Name),
+	ControllerName = controller_name(Name, Controller),
 	case supervisor:start_child(
 		simplepool_pools_sup,
 
 		#{id => SupName,
-			start => {simplepool_pool_sup, start_link, [Visibility, SupName, WorkerNames, Worker, Args, SupFlags]},
+			start => {simplepool_pool_sup, start_link,
+				[Visibility, SupName, WorkerNames, Worker, ControllerName, Controller, Args, SupFlags]},
 			restart => transient,
 			shutdown => 3000,
 			type => supervisor,
@@ -131,7 +140,17 @@ do_start_pool(Visibility, Name, Size, Worker, Args, SupFlags) ->
 
 	) of
 		{error, Error} -> {error, Error};
-		{ok, _SupPid} -> {ok, #pool{name = Name, sup_name = SupName, workers = WorkerNames, visibility = Visibility}}
+		{ok, SupPid} ->
+			MonRef = erlang:monitor(process, SupPid),
+			{ok, #pool{
+				name = Name,
+				sup_name = SupName,
+				workers = WorkerNames,
+				visibility = Visibility,
+				controller = ControllerName,
+				sup_pid = SupPid,
+				mon_ref = MonRef
+			}}
 	end.
 
 
@@ -146,3 +165,6 @@ worker_names(Name, Size) ->
 
 
 sup_name(Name) -> list_to_atom(lists:flatten(io_lib:format("$simplepoolsup$~s", [Name]))).
+
+controller_name(_Name, undefined) -> undefined;
+controller_name(Name, _) -> list_to_atom(lists:flatten(io_lib:format("$simplepoolcontroller$~s", [Name]))).

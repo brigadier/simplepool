@@ -19,10 +19,10 @@ build(Pools) ->
 	),
 	ExportForm = erl_syntax:revert(Export),
 	Clauses = lists:foldl(
-		fun(#pool{name = Name, workers = Workers, visibility = Visibility}, Acc) ->
+		fun(#pool{name = Name, workers = Workers, visibility = Visibility, controller = Controller}, Acc) ->
 			WorkersTuple = list_to_tuple(adjust_global(Workers, Visibility)),
 			WorkersLen = length(Workers),
-			WorkersTree = erl_syntax:abstract({WorkersLen, WorkersTuple}),
+			WorkersTree = erl_syntax:abstract({WorkersLen, WorkersTuple, Controller}),
 			Selector = erl_syntax:atom(Name),
 
 			Clause = erl_syntax:clause([Selector], [], [WorkersTree]),
