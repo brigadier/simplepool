@@ -2,7 +2,8 @@
 =====
 
 #### Features:
-* Multiple pools each with its' own worker module
+* Multiple pools each with its' own worker module and optional controller module. Controller gets started
+after workers. Controller has list of workers in its' args, workers have controller in their args.
 * No trips to ets or gen_servers to get the worker - all the workers are compiled into actual RAM-located
 beam module as soon as a pool is created
 * It is possible to get all the workers in one call
@@ -37,19 +38,20 @@ Examples
 -----
 ```erlang
 %%simplepool:start_pool([Pool name], [Pool size], [Worker module], [Arg for the Init of the module]).
-ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3], #{strategy => one_for_one, intensity => 1, period => 5}).
-{5, Workers3} = simplepool:pool(pool3).
+ok = simplepool:start_pool(pool3, 5, test_worker, [1,2,3], #{strategy => one_for_one, intensity => 1, period => 5}, undefined).
+{5, Workers3, undefined} = simplepool:pool(pool3).
 5 = tuple_size(Workers3).
 RandWorker1 = simplepool:rand_worker(pool3).
 0 = gen_server:call(RandWorker1, {mul, 2}).
 simplepool:stop_pool(pool3),
 not_found = simplepool:pool(pool3),
 %%global workers are also possible
-ok = simplepool:start_pool(global, pool4, 5, test_worker, [1,2,3], #{strategy => one_for_one, intensity => 1, period => 5}).
+ok = simplepool:start_pool(global, pool4, 5, test_worker, [1,2,3], #{strategy => one_for_all, intensity => 1, period => 5}, test_controller).
 RandWorker2 = simplepool:rand_worker(pool4).
 0 = gen_server:call(RandWorker2, {mul, 2}).
 ```
 
 It is also possible to specify pools in `env` of the `app.src` file.
 
-See the tests for more examples.
+See the tests for more examples. Example apps: https://github.com/brigadier/tara/ https://github.com/brigadier/geodata2/
+
