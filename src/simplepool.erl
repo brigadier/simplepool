@@ -39,9 +39,7 @@ rand_worker(Name) ->
 	case pool(Name) of
 		not_found -> not_found;
 		{N, Workers, _} ->
-			%%Looks like unique_integer is always a multiple of number of CPUs. So for 4 CPUs and 4 workers it will always return 2
-%%			I = (erlang:unique_integer([positive]) rem N) + 1,
-			I = erlang:phash2(erlang:unique_integer([positive]), N) + 1,
+			I = rand:uniform(N),
 			element(I, Workers)
 	end.
 
